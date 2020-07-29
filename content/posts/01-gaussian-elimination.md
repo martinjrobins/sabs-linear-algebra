@@ -1,7 +1,6 @@
 ---
 title: "Solution of systems of linear equations"
 date: "2014-04-02"
-katex: true
 questions:
 - "What is the relationship between matrices and systems of linear equations?"
 - "What is a singular matrix and when does it occur?"
@@ -10,6 +9,7 @@ objectives:
 - "Understand the main useful concepts for the solution of systems of linear equations"
 - "Understand singular matrices and the rank of a matrix"
 - "Understand and be able to implement Gaussian Elimination"
+katex: true
 markup: "mmark"
 ---
 
@@ -369,5 +369,3 @@ PINTS: https://pints.readthedocs.io/en/latest/optimisers/index.html
 https://pints-team.github.io/pints-methods-overview/
 NLOpt: https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/
 PaGMO: https://esa.github.io/pagmo/
-
-{% include links.md %}
