@@ -132,9 +132,38 @@ leading to the final algorithm given below (reproduced from
        
 ![Conjugate Gradient algorithm](/figs/cg_pseudocode.svg)
 
+### Preconditioning
+
 ### Software
 
+Once again the best resource for Python is the [`scipi.sparse.linalg` 
+documentation](https://docs.scipy.org/doc/scipy/reference/sparse.linalg.html).
 
+Iterative methods for linear equation systems in `scipy.sparse.linalg`:
+
+- [BIConjugate Gradient iteration 
+  (BiCG)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.bicg.html#scipy.sparse.linalg.bicg)
+- [BIConjugate Gradient STABilized iteration 
+  (BiCGSTAB)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.bicgstab.html#scipy.sparse.linalg.bicgstab)
+- [Conjugate Gradient iteration 
+  (CG)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.cg.html#scipy.sparse.linalg.cg)
+- [Conjugate Gradient Squared iteration 
+  (CGS)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.cgs.html#scipy.sparse.linalg.cgs)
+- [Generalized Minimal RESidual iteration 
+  (GMRES)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.gmres.html#scipy.sparse.linalg.gmres)
+- 
+  [LGMRES](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.lgmres.html#scipy.sparse.linalg.lgmres)
+- [MINimum RESidual iteration 
+  (MINRES)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.minres.html#scipy.sparse.linalg.minres)
+- [Quasi-Minimal Residual iteration 
+  (QMR)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.qmr.html#scipy.sparse.linalg.qmr)
+- 
+  [GCROT(m,k)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.gcrotmk.html#scipy.sparse.linalg.gcrotmk)
+
+`scipy.sparse.linalg` also contains two iterative solvers for least-squares problems, 
+[`lsqr`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.lsqr.html#scipy.sparse.linalg.lsqr) 
+and 
+[`lsmr`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.lsmr.html#scipy.sparse.linalg.lsmr)
 
 ### Other Reading
 
