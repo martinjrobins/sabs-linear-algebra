@@ -7,6 +7,8 @@ questions:
 
 objectives:
 - ""
+katex: true
+markup: "mmark"
 ---
 
 Previously we have discussed *direct* linear algebra solvers based on decompositions of 
@@ -86,6 +88,72 @@ optimal $\omega$ is known, for example for finite difference discretisation of t
 However, in many cases sophisticated eigenvalue analysis is required to determine the 
 optimal $\omega$. 
 
+### Problems
+
+This exercise involves the manipulation and solution of the linear system resulting from 
+the finite difference solution to Poisson's equation in two dimensions. Let $A$ be a 
+sparse symmetric positive definite matrix of dimension $(N-1)^2 \times (N-1)^2$ created 
+using `scipy.sparse` (for a given $N$) by the function
+`buildA` as follows:
+```python
+import numpy as np
+import scipy.sparse as sp
+
+def buildA(N):
+  dx = 1 / N
+  nvar = (N - 1)^2;
+  e1 = np.ones((nvar, 1));
+  e2 = e1
+  e2[1:N-1:nvar] = 0
+  e3 = e1
+  e3[N-1:N-1:nvar] = 0
+  A = sp.spdiags(
+        np.vstack((-e1, 4*e1, -e1)),
+        -(N-1):N-1:N-1, nvar, nvar
+      ) +
+      sp.spdiags(
+        np.vstack((-e3, -e2),
+        -1:2:1 , nvar, nvar
+      )
+  A= A / dx^2;
+```
+
+and let $\mathbf{f}_1$ and $\mathbf{f}_2$ be the vectors defined in
+`buildf1` and `buildf2`
+
+```python
+def buildf1(N):
+  x = 0:1/N:1
+  y = x
+  f = np.dot(np.sin(pi*x), np.sin(pi*y))
+  return f[2:N,2:N].reshape(-1,1)
+```
+
+```python
+def buildf2(N):
+  x = 0:1/N:1
+  y = x
+  f = np.dot(np.max(x,1-x), np.max(y,1-y))
+  return f[2:N,2:N].reshape(-1, 1)
+```
+
+We will consider manipulation of the matrix $A$ and solution of the linear
+systems $A\mathbf{U}_i=\mathbf{f}_i$. The solution to this linear system
+corresponds to a finite difference solution to Poisson's equation $-\nabla^2 u
+= f$ on the unit square with zero Dirichlet boundary conditions where $f$ is
+either $\sin(\pi x) \sin (\pi y)$ or $\max(x,1-x) \max(y,1-y)$. PDEs of this type occur 
+(usually with some additional reaction and or convection terms) very frequently
+in mathematical modelling of physiological processes, and even in image
+analysis. 
+
+1. Write a function to solve a linear system using the Jacobi method. In
+  terms of $N$, how many iterations does it take to converge? (Try
+  $N=4,8,16,32,64$.)
+2. Write a function to solve a linear system using the SOR method. For
+  $N=64$ and right-hand-side $\mathbf{f}_2$ determine numerically the best
+  choice of the relaxation parameter to 2 decimal places and compare this
+  with theory.
+
 ## Conjugate Gradient Method
 
 One of the most important classes of iterative methods are the *Krylov subspace 
@@ -113,7 +181,7 @@ $\alpha$ such that $\phi(x_k + \alpha p_k) < \phi(x_k)$, where $p_k$ is the *sea
 direction* at each $k$. For the classical stepest descent optimisation algorithm the 
 search direction would be the residual $p_k = r_k$, however, steapest descent can suffer 
 from convergence problems, so instead we aim to find a set of search directions $p_k$ so 
-that $p_k^T r_{k-1} \ne 0$ (i.e. at each step we are guarenteed to reduce $\phi$), and 
+that $p_k^T r\_{k-1} \ne 0$ (i.e. at each step we are guarenteed to reduce $\phi$), and 
 that the search directions are linearly independent. The latter guarentees that the 
 method will converge in at most $n$ steps, where $n$ is the size of the square matrix 
 $A$.
@@ -122,17 +190,80 @@ It can be shown that the best set of search directions can be achieved by settin
 
 $$
 \begin{aligned}
-\beta_k &= \frac{-p^T_{k-1} A r_{k-1}}{p^T_{k-1} A p_{k-1} \\
+\beta_k &= \frac{-p^T_{k-1} A r_{k-1}}{p^T_{k-1} A p_{k-1}} \\
 p_k &= r_{k-1} + \beta_k p_{k-1} \\
 \alpha_k &= \frac{p^T_k r_{k-1}}{p^T_k A p_k}
+\end{aligned}
 $$
 
-leading to the final algorithm given below (reproduced from 
-[Wikipedia](https://en.wikipedia.org/wiki/Conjugate_gradient_method):
-       
+Directly using the above equations in an iterative algorithm results in the standard CG 
+algorithm. A more efficient algorithm can be derived from this by computing the 
+residuals recursivly via $r_k = r\_{k-1} - \alpha_k A p_k$, leading to the final 
+algorithm given below (reproduced from 
+[Wikipedia](https://en.wikipedia.org/wiki/Conjugate_gradient_method)):
+
 ![Conjugate Gradient algorithm](/figs/cg_pseudocode.svg)
 
 ### Preconditioning
+
+The CG method works well (i.e. converges quickly) if the *condition number* of the 
+matrix $A$ is low. The condition number of a matrix gives a measure of how much the 
+solution $x$ changes in response to a small change in the input $b$, and is a property 
+of the matrix $A$ itself, so can vary from problem to problem. In order to keep the 
+number of iterations small for iterative solvers, it is therefore often neccessary to 
+use a *preconditioner*, which is a method of transforming what might be a difficult 
+problem with a poorly conditioned $A$, into a well conditioned problem that is easy to 
+solve.
+
+Consider the case of precoditioning for the CG methods, we start from the standard 
+problem $A x = b$, and we wish to solve an *equivilent* transformed problem given by
+
+$$
+\tilde{A} \tilde{x} = \tilde{b}
+$$
+
+where $\tilde{A} = C^{-1} A C^{-1}$, $\tilde{x} = Cx$, $\tilde{b} = C^{-1}$, and $C$ is 
+a symmetric positive matrix.
+
+We then simply apply the standard CG method as given above to this transformed problem. 
+This leads to an algorithm which is then simplified by instead computing the transformed 
+quantities $\tilde{p}_k = C p_k$, $\tilde{x}_k = C x_k$, and $\tilde{r}_k = C^{-1} r_k$. 
+Finally we define a matrix $M = C^2$, which is known as the *preconditioner*, leading to 
+the final precoditioned CG algorithm given below (reproduced and edited from 
+[Wikipedia](https://en.wikipedia.org/wiki/Conjugate_gradient_method)):
+
+$\mathbf{r}\_0 := \mathbf{b} - \mathbf{A x}\_0$\\
+$\mathbf{z}\_0 := \mathbf{M}^{-1} \mathbf{r}\_0$\\
+$\mathbf{p}\_0 := \mathbf{z}\_0$\\
+$k := 0 \, $\\
+**repeat until $|| \mathbf{r}_k ||_2 < \epsilon ||\mathbf{b}||_2$**\\
+&nbsp;&nbsp; $\alpha\_k := \frac{\mathbf{r}\_k^T \mathbf{z}\_k}{ \mathbf{p}\_k^T 
+\mathbf{A p}\_k }$\\
+&nbsp;&nbsp; $\mathbf{x}\_{k+1} := \mathbf{x}\_k + \alpha\_k \mathbf{p}\_k$ \\
+&nbsp;&nbsp; $\mathbf{r}\_{k+1} := \mathbf{r}\_k - \alpha_k \mathbf{A p}\_k$ \\
+&nbsp;&nbsp; **if** $r\_{k+1}$ is sufficiently small then exit loop **end if** \\
+&nbsp;&nbsp; $\mathbf{z}\_{k+1} := \mathbf{M}^{-1} \mathbf{r}\_{k+1}$\\
+&nbsp;&nbsp; $\beta\_k := \frac{\mathbf{r}\_{k+1}^T \mathbf{z}\_{k+1}}{\mathbf{r}\_k^T 
+\mathbf{z}\_k}$\\
+&nbsp;&nbsp; $\mathbf{p}\_{k+1} := \mathbf{z}\_{k+1} + \beta_k \mathbf{p}\_k$\\
+&nbsp;&nbsp; $k := k + 1 \, $\\
+**end repeat**
+
+The key point to note here is that the preconditioner is used by inverting $M$, so this 
+matrix must be "easy" to solve in some fashion, and also result in a transformed problem 
+with better conditioning.
+
+**Termination**: The CG algorithm is normally run untill convergence to a given 
+tolerance which is based on the norm of the input vector $b$. In the algorithm above we 
+iterate until the residual norm is less than some fraction (set by the user) of the norm 
+of $b$.
+
+What preconditioner to choose for a given problem is often highly problem-specific, but 
+some useful general purpose preconditioners exist, such as the *incomplete Cholesky 
+preconditioner* for preconditioned CG (see Chapter 10.3.2 of the Golub & Van Loan text 
+given below). Chapter 3 of the [Barrett et al. 
+text](https://www.netlib.org/templates/templates.pdf), also cited below, contains 
+descriptions of a few more commonly used preconditioners.
 
 ### Software
 
@@ -169,39 +300,24 @@ and
 
 - Golub, G. H. & Van Loan, C. F. Matrix Computations, 3rd Ed. (Johns Hopkins University 
   Press, 1996). Chapter 10 
+- Barrett, R., Berry, M., Chan, T. F., Demmel, J., Donato, J., Dongarra, J., ... & Van 
+  der Vorst, H. (1994). Templates for the solution of linear systems: building blocks 
+  for iterative methods. Society for Industrial and Applied Mathematics.
 
-Note: based on FD matrix in previous lession:
-\vspace*{1em} 
+### Problems
 
-\item {\it Solution of linear systems}
+Note: based on the FD matrix in previous exercise:
 
-\vspace*{0.5em}
-\noindent
 For $N=4,8,16,32,64,128$ try the following:
-
-
-
-\begin{enumerate}
-\item Solve the linear systems using $\mathbf{U}_i=A^{-1} \mathbf{f}_i$ and
-  record the time this takes on a $\log$-$\log$ graph. (Omit the case $N=128$
+1. Solve the linear systems using $\mathbf{U}_i=A^{-1} \mathbf{f}_i$ (see 
+   [`scipy.linalg.inv`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.inv.html) 
+   and record the time this takes on a $\log$-$\log$ graph. (Omit the case $N=128$
   and note this may take a while for $N=64$.)
-\item Solve the linear systems using Gaussian elimination (corresponds to
-  \textsc{Matlab}'s ``\mcode{\\}'' command). Plot the time this takes on the
-  same graph.
-\item ($\star$) \label {cg} Now solve the systems iteratively using \textsc{Matlab}'s
-  conjugate gradients solver. How many iterations are needed for each
-  problem? Explain the results for the right-hand-side $\mathbf{f}_1$. For
-  the right-hand-side $\mathbf{f}_2$ what is the relationship between the
-  number of iterations and $N$. How long do the computations take?
-\item ($\star$) Repeat \ref{cg} using \textsc{Matlab}'s built in BICGSTAB and GMRES
-  solvers.
-\item ($\star$) Write a function to solve a linear system using the Jacobi method. In
-  terms of $N$, how many iterations does it take to converge? (Try
-  $N=4,8,16,32,64$.)
-\item ($\star$) Write a function to solve a linear system using the SOR method. For
-  $N=64$ and right-hand-side $\mathbf{f}_2$ determine numerically the best
-  choice of the relaxation parameter to 2 decimal places and compare this
-  with theory.
-\end{enumerate}
-
-\end{enumerate}
+2. Solve the linear systems using $LU$ and $Cholesky$ decomposition. Plot the time this 
+   takes on the same graph.
+3. Now solve the systems iteratively using a conjugate gradients solver (you can use the 
+   one in `scipy.linalg.sparse`, or you can code up your own). How many iterations are 
+   needed for each problem? Explain the results for the right-hand-side $\mathbf{f}_1$. 
+   For the right-hand-side $\mathbf{f}_2$ what is the relationship between the number of 
+   iterations and $N$. How long do the computations take?
+4. Repeat using the `scipy.sparse.linalg` BICGSTAB and GMRES solvers.
